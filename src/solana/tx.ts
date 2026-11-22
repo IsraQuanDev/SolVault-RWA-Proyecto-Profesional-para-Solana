@@ -93,8 +93,8 @@ export function traducir(error: unknown): string {
   if (/AccountNotInitialized|does not exist|Account does not exist/i.test(texto)) {
     return 'No se encontró una de las cuentas. Crea primero la bóveda y el lote correspondientes.';
   }
-  if (/already in use|already initialized/i.test(texto)) {
-    return 'Esa cuenta ya existe. El mismo lote solo puede tener un activo por serial.';
+  if (/already in use|already initialized/i.test(texto) || /custom program error: 0x0\b/i.test(texto)) {
+    return 'Esa cuenta ya existe onchain. Si deseas crear otra bóveda, cámbiale el nombre arriba (ejemplo: Boveda 2).';
   }
   const coincidencia = texto.match(/custom program error:\s*(0x[0-9a-f]+|\d+)/i) ?? texto.match(/"Custom"\s*:\s*(\d+)/);
   if (coincidencia) {

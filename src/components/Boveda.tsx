@@ -432,10 +432,18 @@ export function Boveda({
 
           <form onSubmit={ejecutar}>
             <fieldset disabled={ocupado || !permiteEscribir}>
-              {op === 'boveda' && (
+              {op === 'boveda' && !boveda && (
                 <p className="help">
                   Crearás la bóveda de custodia <strong>{nombreBoveda || 'tu bóveda'}</strong>{' '}
                   con la wallet conectada como autoridad única.
+                </p>
+              )}
+
+              {op === 'boveda' && boveda && (
+                <p className="notice information">
+                  Esta bóveda ya está creada y activa onchain. Para crear otra bóveda distinta,
+                  escribe un nombre diferente arriba (ej. "Boveda 2"). Para operar en esta bóveda,
+                  selecciona la pestaña <strong>Crear lote</strong>.
                 </p>
               )}
 
