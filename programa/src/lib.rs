@@ -1,6 +1,6 @@
 use anchor_lang::prelude::*;
 
-declare_id!("");
+declare_id!("A719PHJSLKVG9WFGad9od28zx17PfKdaC3Rgetbcq5dW");
 
 #[program]
 pub mod boveda {

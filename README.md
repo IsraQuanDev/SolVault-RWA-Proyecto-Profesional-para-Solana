@@ -13,7 +13,7 @@ El proyecto integra un programa de Solana escrito en **Rust / Anchor** con arqui
 | **Nombre del proyecto** | `SolVault RWA` |
 | **Categoría** | `tokenizacion` |
 | **Repositorio GitHub** | *(Tu URL pública de GitHub, e.g. `https://github.com/TU_USUARIO/solvault-rwa`)* |
-| **Dirección en Devnet** | *Obtenida tras desplegar en Solana Playground (ver sección de despliegue)* |
+| **Dirección en Devnet** | `A719PHJSLKVG9WFGad9od28zx17PfKdaC3Rgetbcq5dW` |
 | **Correo del participante** | *(Tu correo registrado en el Bootcamp WayLearn)* |
 
 ---

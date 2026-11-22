@@ -73,7 +73,7 @@ import {
 } from "../instructions";
 
 export const BOVEDA_PROGRAM_ADDRESS =
-  "38oTMyvUTmqkBQeMiuok5F2mPjp9dVadWdBeQTDNmTUY" as Address<"38oTMyvUTmqkBQeMiuok5F2mPjp9dVadWdBeQTDNmTUY">;
+  "A719PHJSLKVG9WFGad9od28zx17PfKdaC3Rgetbcq5dW" as Address<"A719PHJSLKVG9WFGad9od28zx17PfKdaC3Rgetbcq5dW">;
 
 export enum BovedaAccount {
   Boveda,
@@ -210,7 +210,7 @@ export function identifyBovedaInstruction(
 }
 
 export type ParsedBovedaInstruction<
-  TProgram extends string = "38oTMyvUTmqkBQeMiuok5F2mPjp9dVadWdBeQTDNmTUY",
+  TProgram extends string = "A719PHJSLKVG9WFGad9od28zx17PfKdaC3Rgetbcq5dW",
 > =
   | ({
       instructionType: BovedaInstruction.CrearBoveda;
