@@ -14,9 +14,9 @@ export function entero(valor: number, etiqueta: string, maximo: number): number 
   return valor;
 }
 
-export const negocioValido = (valor: string) => texto(valor, 'El nombre del negocio', 30);
-export const nombreValido = (valor: string) => texto(valor, 'El nombre del cliente', 30);
-export const skuValido = (valor: string) => texto(valor, 'El SKU', 5);
-export const descripcionValida = (valor: string) => texto(valor, 'La descripción', 50);
-export const idValido = (valor: number) => entero(valor, 'El identificador', 65_535);
-export const montoValido = (valor: number) => entero(valor, 'El monto', 4_294_967_295);
+export const bovedaValida = (valor: string) => texto(valor, 'El nombre de la bóveda', 30);
+export const categoriaValida = (valor: string) => texto(valor, 'La categoría del lote', 30);
+export const serialValido = (valor: string) => texto(valor, 'El serial del activo', 5);
+export const descripcionValida = (valor: string) => texto(valor, 'La descripción del activo', 50);
+export const idValido = (valor: number) => entero(valor, 'El identificador del lote', 65_535);
+export const valorEstimadoValido = (valor: number) => entero(valor, 'El valor estimado', 4_294_967_295);

@@ -47,23 +47,24 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { REGISTRO_PROGRAM_ADDRESS } from "../programs";
+import { BOVEDA_PROGRAM_ADDRESS } from "../programs";
 
-export const HACER_DEVOLUCION_DISCRIMINATOR: ReadonlyUint8Array =
-  new Uint8Array([65, 193, 244, 124, 210, 201, 110, 191]);
+export const LIQUIDAR_ACTIVO_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
+  [101, 136, 241, 67, 129, 121, 73, 47],
+);
 
-export function getHacerDevolucionDiscriminatorBytes(): ReadonlyUint8Array {
+export function getLiquidarActivoDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    HACER_DEVOLUCION_DISCRIMINATOR,
+    LIQUIDAR_ACTIVO_DISCRIMINATOR,
   );
 }
 
-export type HacerDevolucionInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type LiquidarActivoInstruction<
+  TProgram extends string = typeof BOVEDA_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountRegistro extends string | AccountMeta<string> = string,
-  TAccountCliente extends string | AccountMeta<string> = string,
-  TAccountVenta extends string | AccountMeta<string> = string,
+  TAccountBoveda extends string | AccountMeta<string> = string,
+  TAccountLote extends string | AccountMeta<string> = string,
+  TAccountActivo extends string | AccountMeta<string> = string,
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
 > = Instruction<TProgram> &
   InstructionWithData<ReadonlyUint8Array> &
@@ -73,111 +74,110 @@ export type HacerDevolucionInstruction<
         ? WritableSignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountRegistro extends string
-        ? ReadonlyAccount<TAccountRegistro>
-        : TAccountRegistro,
-      TAccountCliente extends string
-        ? WritableAccount<TAccountCliente>
-        : TAccountCliente,
-      TAccountVenta extends string
-        ? WritableAccount<TAccountVenta>
-        : TAccountVenta,
+      TAccountBoveda extends string
+        ? ReadonlyAccount<TAccountBoveda>
+        : TAccountBoveda,
+      TAccountLote extends string
+        ? WritableAccount<TAccountLote>
+        : TAccountLote,
+      TAccountActivo extends string
+        ? WritableAccount<TAccountActivo>
+        : TAccountActivo,
       ...TRemainingAccounts,
     ]
   >;
 
-export type HacerDevolucionInstructionData = {
+export type LiquidarActivoInstructionData = {
   discriminator: ReadonlyUint8Array;
-  idCliente: number;
-  sku: string;
+  idLote: number;
+  serial: string;
 };
 
-export type HacerDevolucionInstructionDataArgs = {
-  idCliente: number;
-  sku: string;
+export type LiquidarActivoInstructionDataArgs = {
+  idLote: number;
+  serial: string;
 };
 
-export function getHacerDevolucionInstructionDataEncoder(): Encoder<HacerDevolucionInstructionDataArgs> {
+export function getLiquidarActivoInstructionDataEncoder(): Encoder<LiquidarActivoInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["idCliente", getU16Encoder()],
-      ["sku", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["idLote", getU16Encoder()],
+      ["serial", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
-    (value) => ({ ...value, discriminator: HACER_DEVOLUCION_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: LIQUIDAR_ACTIVO_DISCRIMINATOR }),
   );
 }
 
-export function getHacerDevolucionInstructionDataDecoder(): Decoder<HacerDevolucionInstructionData> {
+export function getLiquidarActivoInstructionDataDecoder(): Decoder<LiquidarActivoInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["idCliente", getU16Decoder()],
-    ["sku", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["idLote", getU16Decoder()],
+    ["serial", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 
-export function getHacerDevolucionInstructionDataCodec(): Codec<
-  HacerDevolucionInstructionDataArgs,
-  HacerDevolucionInstructionData
+export function getLiquidarActivoInstructionDataCodec(): Codec<
+  LiquidarActivoInstructionDataArgs,
+  LiquidarActivoInstructionData
 > {
   return combineCodec(
-    getHacerDevolucionInstructionDataEncoder(),
-    getHacerDevolucionInstructionDataDecoder(),
+    getLiquidarActivoInstructionDataEncoder(),
+    getLiquidarActivoInstructionDataDecoder(),
   );
 }
 
-export type HacerDevolucionInput<
+export type LiquidarActivoInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCliente extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVenta extends InstructionAccountInput = InstructionAccountInput,
+  TAccountBoveda extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLote extends InstructionAccountInput = InstructionAccountInput,
+  TAccountActivo extends InstructionAccountInput = InstructionAccountInput,
 > = {
   owner: TAccountOwner;
-  registro: TAccountRegistro;
-  cliente: TAccountCliente;
-  venta: TAccountVenta;
-  idCliente: HacerDevolucionInstructionDataArgs["idCliente"];
-  sku: HacerDevolucionInstructionDataArgs["sku"];
+  boveda: TAccountBoveda;
+  lote: TAccountLote;
+  activo: TAccountActivo;
+  idLote: LiquidarActivoInstructionDataArgs["idLote"];
+  serial: LiquidarActivoInstructionDataArgs["serial"];
 };
 
-export function getHacerDevolucionInstruction<
+export function getLiquidarActivoInstruction<
   TAccountOwner extends InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput,
-  TAccountCliente extends InstructionAccountInput,
-  TAccountVenta extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof REGISTRO_PROGRAM_ADDRESS,
+  TAccountBoveda extends InstructionAccountInput,
+  TAccountLote extends InstructionAccountInput,
+  TAccountActivo extends InstructionAccountInput,
+  TProgramAddress extends Address = typeof BOVEDA_PROGRAM_ADDRESS,
 >(
-  input: HacerDevolucionInput<
+  input: LiquidarActivoInput<
     TAccountOwner,
-    TAccountRegistro,
-    TAccountCliente,
-    TAccountVenta
+    TAccountBoveda,
+    TAccountLote,
+    TAccountActivo
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
   },
-): HacerDevolucionInstruction<
+): LiquidarActivoInstruction<
   TProgramAddress,
   ResolvedInstructionAccountMeta<
     TAccountOwner,
     InstructionAccountInputAddress<TAccountOwner>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountRegistro,
-    InstructionAccountInputAddress<TAccountRegistro>
+    TAccountBoveda,
+    InstructionAccountInputAddress<TAccountBoveda>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountCliente,
-    InstructionAccountInputAddress<TAccountCliente>
+    TAccountLote,
+    InstructionAccountInputAddress<TAccountLote>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountVenta,
-    InstructionAccountInputAddress<TAccountVenta>
+    TAccountActivo,
+    InstructionAccountInputAddress<TAccountActivo>
   >
 > {
   // Program address.
-  const programAddressInput =
-    config?.programAddress ?? REGISTRO_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? BOVEDA_PROGRAM_ADDRESS;
   const programAddress =
     typeof programAddressInput === "string"
       ? programAddressInput
@@ -189,17 +189,9 @@ export function getHacerDevolucionInstruction<
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
-    registro: {
-      value: input.registro ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    cliente: {
-      value: input.cliente ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    venta: { value: input.venta ?? null, isSigner: false, isWritable: true },
+    boveda: { value: input.boveda ?? null, isSigner: false, isWritable: false },
+    lote: { value: input.lote ?? null, isSigner: false, isWritable: true },
+    activo: { value: input.activo ?? null, isSigner: false, isWritable: true },
   };
   const accounts = originalAccounts as Record<
     keyof typeof originalAccounts,
@@ -212,57 +204,57 @@ export function getHacerDevolucionInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("registro", accounts.registro),
-      getAccountMeta("cliente", accounts.cliente),
-      getAccountMeta("venta", accounts.venta),
+      getAccountMeta("boveda", accounts.boveda),
+      getAccountMeta("lote", accounts.lote),
+      getAccountMeta("activo", accounts.activo),
     ],
-    data: getHacerDevolucionInstructionDataEncoder().encode(
-      args as HacerDevolucionInstructionDataArgs,
+    data: getLiquidarActivoInstructionDataEncoder().encode(
+      args as LiquidarActivoInstructionDataArgs,
     ),
     programAddress,
-  } as HacerDevolucionInstruction<
+  } as LiquidarActivoInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
       InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistro,
-      InstructionAccountInputAddress<TAccountRegistro>
+      TAccountBoveda,
+      InstructionAccountInputAddress<TAccountBoveda>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountCliente,
-      InstructionAccountInputAddress<TAccountCliente>
+      TAccountLote,
+      InstructionAccountInputAddress<TAccountLote>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountVenta,
-      InstructionAccountInputAddress<TAccountVenta>
+      TAccountActivo,
+      InstructionAccountInputAddress<TAccountActivo>
     >
   >);
 }
 
-export type ParsedHacerDevolucionInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type ParsedLiquidarActivoInstruction<
+  TProgram extends string = typeof BOVEDA_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
     owner: TAccountMetas[0];
-    registro: TAccountMetas[1];
-    cliente: TAccountMetas[2];
-    venta: TAccountMetas[3];
+    boveda: TAccountMetas[1];
+    lote: TAccountMetas[2];
+    activo: TAccountMetas[3];
   };
-  data: HacerDevolucionInstructionData;
+  data: LiquidarActivoInstructionData;
 };
 
-export function parseHacerDevolucionInstruction<
+export function parseLiquidarActivoInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedHacerDevolucionInstruction<TProgram, TAccountMetas> {
+): ParsedLiquidarActivoInstruction<TProgram, TAccountMetas> {
   if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
@@ -282,10 +274,10 @@ export function parseHacerDevolucionInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       owner: getNextAccount(),
-      registro: getNextAccount(),
-      cliente: getNextAccount(),
-      venta: getNextAccount(),
+      boveda: getNextAccount(),
+      lote: getNextAccount(),
+      activo: getNextAccount(),
     },
-    data: getHacerDevolucionInstructionDataDecoder().decode(instruction.data),
+    data: getLiquidarActivoInstructionDataDecoder().decode(instruction.data),
   };
 }

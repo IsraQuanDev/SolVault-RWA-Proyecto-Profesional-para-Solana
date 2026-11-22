@@ -1,71 +1,67 @@
 import type { Address } from "@solana/kit";
 
 import {
-  fetchAllCliente,
-  fetchAllVenta,
-  fetchMaybeRegistro,
+  fetchAllLote,
+  fetchAllActivo,
+  fetchMaybeBoveda,
 } from "../../clients/js/src/generated";
 import { rpc } from "./conexion";
-import { pdaRegistro } from "./pdas";
+import { pdaBoveda } from "./pdas";
 
 /*
-LECTURAS — ya resueltas
+LECTURAS — Estado onchain de SolVault RWA
 
-Leer no necesita wallet ni firma: solo el rpc. Estas funciones vienen escritas
-para que el dia 4 puedas concentrarte en la escritura.
-
-Fijate en la forma del resultado: fetchX devuelve { address, data, lamports... }
-y los campos de la cuenta estan dentro de .data, nunca sueltos en la raiz.
+Leer no requiere wallet ni firma de transacción: utiliza el endpoint RPC público.
+fetchMaybeBoveda devuelve { exists: boolean, data: ... }, permitiendo comprobar
+si la bóveda ya fue desplegada e inicializada onchain.
 */
 
-export type ClienteUI = {
+export type ActivoUI = {
   direccion: Address;
-  idCliente: number;
-  nombre: string;
-  compras: number;
-  ventas: { direccion: Address; sku: string; descripcion: string; monto: number }[];
+  serial: string;
+  descripcion: string;
+  valorEstimado: number;
 };
 
-export type RegistroUI = {
+export type LoteUI = {
   direccion: Address;
-  nombreNegocio: string;
+  idLote: number;
+  categoria: string;
+  totalActivos: number;
+  activos: ActivoUI[];
+};
+
+export type BovedaUI = {
+  direccion: Address;
+  nombreBoveda: string;
   idCounter: number;
-  clientes: ClienteUI[];
+  lotes: LoteUI[];
 };
 
-/*
-Tres niveles de cuentas, tres niveles de lectura: el registro guarda las
-direcciones de sus clientes, y cada cliente las de sus ventas. Esa es la
-contrapartida del modelo: una cuenta por entidad se paga con una lectura
-por entidad.
-
-fetchMaybe... no lanza si la cuenta no existe: devuelve exists: false. Es lo
-que quieres cuando el usuario todavia no ha creado su registro.
-*/
-export async function leerRegistro(
-  nombreNegocio: string,
+export async function leerBoveda(
+  nombreBoveda: string,
   owner: Address
-): Promise<RegistroUI | null> {
-  const direccion = pdaRegistro(nombreNegocio, owner);
-  const cuenta = await fetchMaybeRegistro(rpc, direccion);
+): Promise<BovedaUI | null> {
+  const direccion = pdaBoveda(nombreBoveda, owner);
+  const cuenta = await fetchMaybeBoveda(rpc, direccion);
 
   if (!cuenta.exists) return null;
 
-  const clientes = await fetchAllCliente(rpc, cuenta.data.clientes);
+  const lotes = await fetchAllLote(rpc, cuenta.data.lotes);
 
-  const conVentas = await Promise.all(
-    clientes.map(async (c) => {
-      const ventas = await fetchAllVenta(rpc, c.data.historial);
+  const conActivos = await Promise.all(
+    lotes.map(async (l) => {
+      const activos = await fetchAllActivo(rpc, l.data.activos);
       return {
-        direccion: c.address,
-        idCliente: c.data.idCliente,
-        nombre: c.data.nombre,
-        compras: c.data.compras,
-        ventas: ventas.map((v) => ({
-          direccion: v.address,
-          sku: v.data.sku,
-          descripcion: v.data.descripcion,
-          monto: v.data.monto,
+        direccion: l.address,
+        idLote: l.data.idLote,
+        categoria: l.data.categoria,
+        totalActivos: l.data.totalActivos,
+        activos: activos.map((a) => ({
+          direccion: a.address,
+          serial: a.data.serial,
+          descripcion: a.data.descripcion,
+          valorEstimado: a.data.valorEstimado,
         })),
       };
     })
@@ -73,26 +69,23 @@ export async function leerRegistro(
 
   return {
     direccion,
-    nombreNegocio: cuenta.data.nombreNegocio,
+    nombreBoveda: cuenta.data.nombreBoveda,
     idCounter: cuenta.data.idCounter,
-    clientes: conVentas,
+    lotes: conActivos,
   };
 }
 
 /*
-El id del cliente nuevo sale del contador del registro.
-
-El programa es quien lo asigna; esta lectura no se lo manda. Hace falta porque
-el id entra en las semillas, y una transaccion de Solana declara por adelantado
-todas las cuentas que va a tocar: hay que saber la direccion ANTES de firmar.
+Calcula el siguiente id de lote disponible a partir del contador de la bóveda.
+Necesario para derivar la PDA del lote ANTES de enviar la transacción.
 */
 export async function siguienteId(
-  nombreNegocio: string,
+  nombreBoveda: string,
   owner: Address
 ): Promise<number> {
-  const cuenta = await fetchMaybeRegistro(rpc, pdaRegistro(nombreNegocio, owner));
-  if (!cuenta.exists) throw new Error("Ese registro no existe todavia.");
-  if (cuenta.data.clientes.length >= 10) throw new Error("El registro alcanzó las 10 referencias de clientes previstas para el ejercicio.");
-  if (cuenta.data.idCounter >= 65_535) throw new Error("Se agotaron los identificadores u16 del registro.");
+  const cuenta = await fetchMaybeBoveda(rpc, pdaBoveda(nombreBoveda, owner));
+  if (!cuenta.exists) throw new Error("Esa bóveda no existe todavía.");
+  if (cuenta.data.lotes.length >= 10) throw new Error("La bóveda alcanzó el límite de 10 lotes previstos.");
+  if (cuenta.data.idCounter >= 65_535) throw new Error("Se agotaron los identificadores u16 de la bóveda.");
   return cuenta.data.idCounter + 1;
 }

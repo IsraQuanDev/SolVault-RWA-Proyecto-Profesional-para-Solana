@@ -1,14 +1,25 @@
 import { address, createNoopSigner, type Address } from '@solana/kit';
 import type { Connection } from '@solana/web3.js';
 import {
-  getCrearRegistroInstruction, getCrearClienteInstruction,
-  getRegistrarVentaInstruction, getCambiarMontoInstruction, getHacerDevolucionInstruction,
+  getCrearBovedaInstruction,
+  getCrearLoteInstruction,
+  getRegistrarActivoInstruction,
+  getActualizarValorInstruction,
+  getLiquidarActivoInstruction,
+  getCerrarLoteInstruction,
 } from '../../clients/js/src/generated';
-import { cadena, pdaCliente, pdaRegistro } from './pdas';
+import { cadena, pdaBoveda, pdaLote } from './pdas';
 import { siguienteId } from './lecturas';
 import { enviar, type WalletFirma, type OpcionesEnvio } from './tx';
 import { comprobarConfiguracion } from './seguridad';
-import { negocioValido, nombreValido, skuValido, descripcionValida, idValido, montoValido } from './validaciones';
+import {
+  bovedaValida,
+  categoriaValida,
+  serialValido,
+  descripcionValida,
+  idValido,
+  valorEstimadoValido,
+} from './validaciones';
 
 export function direccionDe(wallet: Pick<WalletFirma, 'publicKey'>): Address {
   if (!wallet.publicKey) throw new Error('Conecta tu wallet primero.');
@@ -17,62 +28,154 @@ export function direccionDe(wallet: Pick<WalletFirma, 'publicKey'>): Address {
 
 function firmante(wallet: WalletFirma) {
   comprobarConfiguracion();
-  // Representa la identidad que la wallet firmará después; no contiene claves.
-  // Los roles finales los establece el builder generado del cliente actual.
   return createNoopSigner(direccionDe(wallet));
 }
 
-/** Ejemplo resuelto: identidad, cuentas, instrucción y envío. */
-export async function crearRegistro(wallet: WalletFirma, connection: Connection, nombreNegocio: string, opciones?: OpcionesEnvio): Promise<string> {
-  nombreNegocio = negocioValido(nombreNegocio);
+/** 1. Crear Bóveda raíz */
+export async function crearBoveda(
+  wallet: WalletFirma,
+  connection: Connection,
+  nombreBoveda: string,
+  opciones?: OpcionesEnvio
+): Promise<string> {
+  nombreBoveda = bovedaValida(nombreBoveda);
   const owner = firmante(wallet);
-  const registro = pdaRegistro(nombreNegocio, owner.address);
-  const ix = getCrearRegistroInstruction({ owner, registro, nombreNegocio });
+  const boveda = pdaBoveda(nombreBoveda, owner.address);
+  const ix = getCrearBovedaInstruction({ owner, boveda, nombreBoveda });
   return enviar(ix, wallet, connection, opciones);
 }
 
-/** Ejercicio 1 del día 4: crear la cuenta Cliente y actualizar Registro. */
-export async function crearCliente(wallet: WalletFirma, connection: Connection, nombreNegocio: string, nombre: string, opciones?: OpcionesEnvio): Promise<string> {
-  nombreNegocio = negocioValido(nombreNegocio);
-  nombre = nombreValido(nombre);
+/** 2. Crear Lote (entidad hija con id autoincremental) */
+export async function crearLote(
+  wallet: WalletFirma,
+  connection: Connection,
+  nombreBoveda: string,
+  categoria: string,
+  opciones?: OpcionesEnvio
+): Promise<string> {
+  nombreBoveda = bovedaValida(nombreBoveda);
+  categoria = categoriaValida(categoria);
   const owner = firmante(wallet);
-  const registro = pdaRegistro(nombreNegocio, owner.address);
-  const id = await siguienteId(nombreNegocio, owner.address);
-  const cliente = pdaCliente(registro, id);
-  const ix = getCrearClienteInstruction({ owner, registro, cliente, nombre });
+  const boveda = pdaBoveda(nombreBoveda, owner.address);
+  const id = await siguienteId(nombreBoveda, owner.address);
+  const lote = pdaLote(boveda, id);
+  const ix = getCrearLoteInstruction({ owner, boveda, lote, categoria });
   return enviar(ix, wallet, connection, opciones);
 }
 
-/** Ejercicio 2: mismo patrón con una Venta que depende del Cliente. */
-export async function registrarVenta(wallet: WalletFirma, connection: Connection, nombreNegocio: string, idCliente: number, sku: string, descripcion: string, monto: number, opciones?: OpcionesEnvio): Promise<string> {
-  nombreNegocio = negocioValido(nombreNegocio);
-  idCliente = idValido(idCliente);
-  sku = skuValido(sku);
+/** 3. Registrar Activo (registro de activo físico RWA) */
+export async function registrarActivo(
+  wallet: WalletFirma,
+  connection: Connection,
+  nombreBoveda: string,
+  idLote: number,
+  serial: string,
+  descripcion: string,
+  valorEstimado: number,
+  opciones?: OpcionesEnvio
+): Promise<string> {
+  nombreBoveda = bovedaValida(nombreBoveda);
+  idLote = idValido(idLote);
+  serial = serialValido(serial);
   descripcion = descripcionValida(descripcion);
-  monto = montoValido(monto);
+  valorEstimado = valorEstimadoValido(valorEstimado);
+
   const owner = firmante(wallet);
-  const { registro, cliente, venta } = cadena(nombreNegocio, owner.address, idCliente, sku);
-  const ix = getRegistrarVentaInstruction({ owner, registro, cliente, venta, idCliente, sku, descripcion, monto });
+  const { boveda, lote, activo } = cadena(nombreBoveda, owner.address, idLote, serial);
+  if (!activo) throw new Error('Error al derivar la dirección del activo.');
+
+  const ix = getRegistrarActivoInstruction({
+    owner,
+    boveda,
+    lote,
+    activo,
+    idLote,
+    serial,
+    descripcion,
+    valorEstimado,
+  });
   return enviar(ix, wallet, connection, opciones);
 }
 
-export async function cambiarMonto(wallet: WalletFirma, connection: Connection, nombreNegocio: string, idCliente: number, sku: string, nuevoMonto: number, opciones?: OpcionesEnvio): Promise<string> {
-  nombreNegocio = negocioValido(nombreNegocio);
-  idCliente = idValido(idCliente);
-  sku = skuValido(sku);
-  nuevoMonto = montoValido(nuevoMonto);
+/** 4. Modificar Valor del Activo */
+export async function actualizarValor(
+  wallet: WalletFirma,
+  connection: Connection,
+  nombreBoveda: string,
+  idLote: number,
+  serial: string,
+  nuevoValor: number,
+  opciones?: OpcionesEnvio
+): Promise<string> {
+  nombreBoveda = bovedaValida(nombreBoveda);
+  idLote = idValido(idLote);
+  serial = serialValido(serial);
+  nuevoValor = valorEstimadoValido(nuevoValor);
+
   const owner = firmante(wallet);
-  const { registro, cliente, venta } = cadena(nombreNegocio, owner.address, idCliente, sku);
-  const ix = getCambiarMontoInstruction({ owner, registro, cliente, venta, idCliente, sku, nuevoMonto });
+  const { boveda, lote, activo } = cadena(nombreBoveda, owner.address, idLote, serial);
+  if (!activo) throw new Error('Error al derivar la dirección del activo.');
+
+  const ix = getActualizarValorInstruction({
+    owner,
+    boveda,
+    lote,
+    activo,
+    idLote,
+    serial,
+    nuevoValor,
+  });
   return enviar(ix, wallet, connection, opciones);
 }
 
-export async function hacerDevolucion(wallet: WalletFirma, connection: Connection, nombreNegocio: string, idCliente: number, sku: string, opciones?: OpcionesEnvio): Promise<string> {
-  nombreNegocio = negocioValido(nombreNegocio);
-  idCliente = idValido(idCliente);
-  sku = skuValido(sku);
+/** 5. Liquidar Activo (Cierre condicionado y devolución de renta) */
+export async function liquidarActivo(
+  wallet: WalletFirma,
+  connection: Connection,
+  nombreBoveda: string,
+  idLote: number,
+  serial: string,
+  opciones?: OpcionesEnvio
+): Promise<string> {
+  nombreBoveda = bovedaValida(nombreBoveda);
+  idLote = idValido(idLote);
+  serial = serialValido(serial);
+
   const owner = firmante(wallet);
-  const { registro, cliente, venta } = cadena(nombreNegocio, owner.address, idCliente, sku);
-  const ix = getHacerDevolucionInstruction({ owner, registro, cliente, venta, idCliente, sku });
+  const { boveda, lote, activo } = cadena(nombreBoveda, owner.address, idLote, serial);
+  if (!activo) throw new Error('Error al derivar la dirección del activo.');
+
+  const ix = getLiquidarActivoInstruction({
+    owner,
+    boveda,
+    lote,
+    activo,
+    idLote,
+    serial,
+  });
+  return enviar(ix, wallet, connection, opciones);
+}
+
+/** 6. Cerrar Lote (Baja de lote condicionada a no tener activos huérfanos) */
+export async function cerrarLote(
+  wallet: WalletFirma,
+  connection: Connection,
+  nombreBoveda: string,
+  idLote: number,
+  opciones?: OpcionesEnvio
+): Promise<string> {
+  nombreBoveda = bovedaValida(nombreBoveda);
+  idLote = idValido(idLote);
+
+  const owner = firmante(wallet);
+  const boveda = pdaBoveda(nombreBoveda, owner.address);
+  const lote = pdaLote(boveda, idLote);
+
+  const ix = getCerrarLoteInstruction({
+    owner,
+    boveda,
+    lote,
+    idLote,
+  });
   return enviar(ix, wallet, connection, opciones);
 }

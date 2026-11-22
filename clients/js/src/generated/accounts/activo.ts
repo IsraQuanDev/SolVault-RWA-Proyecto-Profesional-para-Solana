@@ -17,16 +17,10 @@ import {
   fetchEncodedAccounts,
   fixDecoderSize,
   fixEncoderSize,
-  getAddressDecoder,
-  getAddressEncoder,
-  getArrayDecoder,
-  getArrayEncoder,
   getBytesDecoder,
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU32Decoder,
   getU32Encoder,
   getUtf8Decoder,
@@ -49,124 +43,120 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
-export const CLIENTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  126, 253, 118, 23, 130, 179, 29, 228,
+export const ACTIVO_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  129, 179, 170, 183, 209, 129, 181, 194,
 ]);
 
-export function getClienteDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(CLIENTE_DISCRIMINATOR);
+export function getActivoDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(ACTIVO_DISCRIMINATOR);
 }
 
-export type Cliente = {
+export type Activo = {
   discriminator: ReadonlyUint8Array;
-  idCliente: number;
-  nombre: string;
-  compras: number;
-  historial: Array<Address>;
+  serial: string;
+  descripcion: string;
+  valorEstimado: number;
 };
 
-export type ClienteArgs = {
-  idCliente: number;
-  nombre: string;
-  compras: number;
-  historial: Array<Address | HasAddress>;
+export type ActivoArgs = {
+  serial: string;
+  descripcion: string;
+  valorEstimado: number;
 };
 
-/** Gets the encoder for {@link ClienteArgs} account data. */
-export function getClienteEncoder(): Encoder<ClienteArgs> {
+/** Gets the encoder for {@link ActivoArgs} account data. */
+export function getActivoEncoder(): Encoder<ActivoArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["idCliente", getU16Encoder()],
-      ["nombre", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["compras", getU16Encoder()],
-      ["historial", getArrayEncoder(getAddressEncoder())],
+      ["serial", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["descripcion", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["valorEstimado", getU32Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: CLIENTE_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: ACTIVO_DISCRIMINATOR }),
   );
 }
 
-/** Gets the decoder for {@link Cliente} account data. */
-export function getClienteDecoder(): Decoder<Cliente> {
+/** Gets the decoder for {@link Activo} account data. */
+export function getActivoDecoder(): Decoder<Activo> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["idCliente", getU16Decoder()],
-    ["nombre", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["compras", getU16Decoder()],
-    ["historial", getArrayDecoder(getAddressDecoder())],
+    ["serial", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["descripcion", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["valorEstimado", getU32Decoder()],
   ]);
 }
 
-/** Gets the codec for {@link Cliente} account data. */
-export function getClienteCodec(): Codec<ClienteArgs, Cliente> {
-  return combineCodec(getClienteEncoder(), getClienteDecoder());
+/** Gets the codec for {@link Activo} account data. */
+export function getActivoCodec(): Codec<ActivoArgs, Activo> {
+  return combineCodec(getActivoEncoder(), getActivoDecoder());
 }
 
-export function decodeCliente<TAddress extends string = string>(
+export function decodeActivo<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress>,
-): Account<Cliente, TAddress>;
-export function decodeCliente<TAddress extends string = string>(
+): Account<Activo, TAddress>;
+export function decodeActivo<TAddress extends string = string>(
   encodedAccount: MaybeEncodedAccount<TAddress>,
-): MaybeAccount<Cliente, TAddress>;
-export function decodeCliente<TAddress extends string = string>(
+): MaybeAccount<Activo, TAddress>;
+export function decodeActivo<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
-): Account<Cliente, TAddress> | MaybeAccount<Cliente, TAddress> {
+): Account<Activo, TAddress> | MaybeAccount<Activo, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
-    getClienteDecoder(),
+    getActivoDecoder(),
   );
 }
 
-export async function fetchCliente<TAddress extends string = string>(
+export async function fetchActivo<TAddress extends string = string>(
   rpc:
     | Parameters<typeof fetchEncodedAccount>[0]
     | ClientWithRpc<GetAccountInfoApi>,
   address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
-): Promise<Account<Cliente, TAddress>> {
-  const maybeAccount = await fetchMaybeCliente(rpc, address, config);
+): Promise<Account<Activo, TAddress>> {
+  const maybeAccount = await fetchMaybeActivo(rpc, address, config);
   assertAccountExists(maybeAccount);
   return maybeAccount;
 }
 
-export async function fetchMaybeCliente<TAddress extends string = string>(
+export async function fetchMaybeActivo<TAddress extends string = string>(
   rpc:
     | Parameters<typeof fetchEncodedAccount>[0]
     | ClientWithRpc<GetAccountInfoApi>,
   address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
-): Promise<MaybeAccount<Cliente, TAddress>> {
+): Promise<MaybeAccount<Activo, TAddress>> {
   const maybeAccount = await fetchEncodedAccount(
     "rpc" in rpc ? rpc.rpc : rpc,
     typeof address === "string" ? address : address.address,
     config,
   );
-  return decodeCliente(maybeAccount);
+  return decodeActivo(maybeAccount);
 }
 
-export async function fetchAllCliente(
+export async function fetchAllActivo(
   rpc:
     | Parameters<typeof fetchEncodedAccounts>[0]
     | ClientWithRpc<GetMultipleAccountsApi>,
   addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
-): Promise<Account<Cliente>[]> {
-  const maybeAccounts = await fetchAllMaybeCliente(rpc, addresses, config);
+): Promise<Account<Activo>[]> {
+  const maybeAccounts = await fetchAllMaybeActivo(rpc, addresses, config);
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }
 
-export async function fetchAllMaybeCliente(
+export async function fetchAllMaybeActivo(
   rpc:
     | Parameters<typeof fetchEncodedAccounts>[0]
     | ClientWithRpc<GetMultipleAccountsApi>,
   addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
-): Promise<MaybeAccount<Cliente>[]> {
+): Promise<MaybeAccount<Activo>[]> {
   const maybeAccounts = await fetchEncodedAccounts(
     "rpc" in rpc ? rpc.rpc : rpc,
     addresses.map((a) => (typeof a === "string" ? a : a.address)),
     config,
   );
-  return maybeAccounts.map((maybeAccount) => decodeCliente(maybeAccount));
+  return maybeAccounts.map((maybeAccount) => decodeActivo(maybeAccount));
 }

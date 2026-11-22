@@ -45,22 +45,21 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { REGISTRO_PROGRAM_ADDRESS } from "../programs";
+import { BOVEDA_PROGRAM_ADDRESS } from "../programs";
 
-export const CREAR_REGISTRO_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  93, 45, 68, 224, 227, 244, 209, 54,
+export const CREAR_LOTE_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  78, 219, 224, 211, 46, 246, 64, 253,
 ]);
 
-export function getCrearRegistroDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(
-    CREAR_REGISTRO_DISCRIMINATOR,
-  );
+export function getCrearLoteDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(CREAR_LOTE_DISCRIMINATOR);
 }
 
-export type CrearRegistroInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type CrearLoteInstruction<
+  TProgram extends string = typeof BOVEDA_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountRegistro extends string | AccountMeta<string> = string,
+  TAccountBoveda extends string | AccountMeta<string> = string,
+  TAccountLote extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -72,9 +71,12 @@ export type CrearRegistroInstruction<
         ? WritableSignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountRegistro extends string
-        ? WritableAccount<TAccountRegistro>
-        : TAccountRegistro,
+      TAccountBoveda extends string
+        ? WritableAccount<TAccountBoveda>
+        : TAccountBoveda,
+      TAccountLote extends string
+        ? WritableAccount<TAccountLote>
+        : TAccountLote,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -82,78 +84,83 @@ export type CrearRegistroInstruction<
     ]
   >;
 
-export type CrearRegistroInstructionData = {
+export type CrearLoteInstructionData = {
   discriminator: ReadonlyUint8Array;
-  nombreNegocio: string;
+  categoria: string;
 };
 
-export type CrearRegistroInstructionDataArgs = { nombreNegocio: string };
+export type CrearLoteInstructionDataArgs = { categoria: string };
 
-export function getCrearRegistroInstructionDataEncoder(): Encoder<CrearRegistroInstructionDataArgs> {
+export function getCrearLoteInstructionDataEncoder(): Encoder<CrearLoteInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      [
-        "nombreNegocio",
-        addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-      ],
+      ["categoria", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
-    (value) => ({ ...value, discriminator: CREAR_REGISTRO_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: CREAR_LOTE_DISCRIMINATOR }),
   );
 }
 
-export function getCrearRegistroInstructionDataDecoder(): Decoder<CrearRegistroInstructionData> {
+export function getCrearLoteInstructionDataDecoder(): Decoder<CrearLoteInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["nombreNegocio", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["categoria", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 
-export function getCrearRegistroInstructionDataCodec(): Codec<
-  CrearRegistroInstructionDataArgs,
-  CrearRegistroInstructionData
+export function getCrearLoteInstructionDataCodec(): Codec<
+  CrearLoteInstructionDataArgs,
+  CrearLoteInstructionData
 > {
   return combineCodec(
-    getCrearRegistroInstructionDataEncoder(),
-    getCrearRegistroInstructionDataDecoder(),
+    getCrearLoteInstructionDataEncoder(),
+    getCrearLoteInstructionDataDecoder(),
   );
 }
 
-export type CrearRegistroInput<
+export type CrearLoteInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput = InstructionAccountInput,
+  TAccountBoveda extends InstructionAccountInput = InstructionAccountInput,
+  TAccountLote extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
 > = {
   owner: TAccountOwner;
-  registro: TAccountRegistro;
+  boveda: TAccountBoveda;
+  lote: TAccountLote;
   systemProgram?: TAccountSystemProgram;
-  nombreNegocio: CrearRegistroInstructionDataArgs["nombreNegocio"];
+  categoria: CrearLoteInstructionDataArgs["categoria"];
 };
 
-export function getCrearRegistroInstruction<
+export function getCrearLoteInstruction<
   TAccountOwner extends InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput,
+  TAccountBoveda extends InstructionAccountInput,
+  TAccountLote extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof REGISTRO_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof BOVEDA_PROGRAM_ADDRESS,
 >(
-  input: CrearRegistroInput<
+  input: CrearLoteInput<
     TAccountOwner,
-    TAccountRegistro,
+    TAccountBoveda,
+    TAccountLote,
     TAccountSystemProgram
   >,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
   },
-): CrearRegistroInstruction<
+): CrearLoteInstruction<
   TProgramAddress,
   ResolvedInstructionAccountMeta<
     TAccountOwner,
     InstructionAccountInputAddress<TAccountOwner>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountRegistro,
-    InstructionAccountInputAddress<TAccountRegistro>
+    TAccountBoveda,
+    InstructionAccountInputAddress<TAccountBoveda>
+  >,
+  ResolvedInstructionAccountMeta<
+    TAccountLote,
+    InstructionAccountInputAddress<TAccountLote>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
@@ -161,8 +168,7 @@ export function getCrearRegistroInstruction<
   >
 > {
   // Program address.
-  const programAddressInput =
-    config?.programAddress ?? REGISTRO_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? BOVEDA_PROGRAM_ADDRESS;
   const programAddress =
     typeof programAddressInput === "string"
       ? programAddressInput
@@ -174,11 +180,8 @@ export function getCrearRegistroInstruction<
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
-    registro: {
-      value: input.registro ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
+    boveda: { value: input.boveda ?? null, isSigner: false, isWritable: true },
+    lote: { value: input.lote ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -202,22 +205,27 @@ export function getCrearRegistroInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("registro", accounts.registro),
+      getAccountMeta("boveda", accounts.boveda),
+      getAccountMeta("lote", accounts.lote),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getCrearRegistroInstructionDataEncoder().encode(
-      args as CrearRegistroInstructionDataArgs,
+    data: getCrearLoteInstructionDataEncoder().encode(
+      args as CrearLoteInstructionDataArgs,
     ),
     programAddress,
-  } as CrearRegistroInstruction<
+  } as CrearLoteInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
       InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistro,
-      InstructionAccountInputAddress<TAccountRegistro>
+      TAccountBoveda,
+      InstructionAccountInputAddress<TAccountBoveda>
+    >,
+    ResolvedInstructionAccountMeta<
+      TAccountLote,
+      InstructionAccountInputAddress<TAccountLote>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -226,33 +234,34 @@ export function getCrearRegistroInstruction<
   >);
 }
 
-export type ParsedCrearRegistroInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type ParsedCrearLoteInstruction<
+  TProgram extends string = typeof BOVEDA_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
     owner: TAccountMetas[0];
-    registro: TAccountMetas[1];
-    systemProgram: TAccountMetas[2];
+    boveda: TAccountMetas[1];
+    lote: TAccountMetas[2];
+    systemProgram: TAccountMetas[3];
   };
-  data: CrearRegistroInstructionData;
+  data: CrearLoteInstructionData;
 };
 
-export function parseCrearRegistroInstruction<
+export function parseCrearLoteInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedCrearRegistroInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 3) {
+): ParsedCrearLoteInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 4) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 3,
+        expectedAccountMetas: 4,
       },
     );
   }
@@ -266,9 +275,10 @@ export function parseCrearRegistroInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       owner: getNextAccount(),
-      registro: getNextAccount(),
+      boveda: getNextAccount(),
+      lote: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getCrearRegistroInstructionDataDecoder().decode(instruction.data),
+    data: getCrearLoteInstructionDataDecoder().decode(instruction.data),
   };
 }

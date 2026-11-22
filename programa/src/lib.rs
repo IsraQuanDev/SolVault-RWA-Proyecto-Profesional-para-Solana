@@ -3,129 +3,134 @@ use anchor_lang::prelude::*;
 declare_id!("");
 
 #[program]
-pub mod registro {
-    use super::*; // Importa todos los structs y enums definidos fuera del modulo
+pub mod boveda {
+    use super::*;
 
     /////////////////////////// INSTRUCCIONES ///////////////////////////
-    /////////////////////////// Crear Registro ///////////////////////////
-    pub fn crear_registro(context: Context<NuevoRegistro>, nombre_negocio: String) -> Result<()> {
-        context.accounts.registro.set_inner(Registro {
-            owner: context.accounts.owner.key(),    // caller wallet
-            nombre_negocio: nombre_negocio.clone(), // .clone() porque el String se reusa en el msg!
-            clientes: Vec::new(), // El negocio nace sin clientes. Guardara PDAs, no structs
-            id_counter: 0,        // Contador incremental, asigna un id unico a cada cliente
-        }); // Crea el struct del registro, lo serializa y lo guarda en el espacio de la cuenta
 
-        msg!("Registro: {} creado exitosamente!", nombre_negocio); // Log de verificacion
-
-        Ok(())
-    }
-
-    /////////////////////////// Nuevo Cliente ///////////////////////////
-    // "init" no puede ser condicional: Anchor crea las cuentas antes de entrar al handler.
-    // Por eso el alta del cliente es su propia instruccion, separada de registrar_venta.
-    pub fn crear_cliente(context: Context<NuevoCliente>, nombre: String) -> Result<()> {
-        let cliente_key = context.accounts.cliente.key(); // Se lee ANTES del &mut para no solapar prestamos
-
-        let registro = &mut context.accounts.registro;
-
-        // El id no es un argumento: lo asigna el programa. El contexto ya derivo la cuenta a
-        // partir de este mismo valor, asi que aqui solo se confirma en el estado.
-        let id_cliente = registro.id_counter + 1;
-        registro.id_counter = id_cliente;
-        registro.clientes.push(cliente_key); // El registro guarda la PDA del cliente, no sus datos
-
-        context.accounts.cliente.set_inner(Cliente {
-            id_cliente,
-            nombre: nombre.clone(), // .clone() para no ceder la propiedad porque el String se reusa en el msg!
-            compras: 0,             // Nace sin compras: registrar_venta es quien incrementa
-            historial: Vec::new(),
+    /////////////////////////// Crear Boveda ///////////////////////////
+    pub fn crear_boveda(context: Context<NuevaBoveda>, nombre_boveda: String) -> Result<()> {
+        context.accounts.boveda.set_inner(Boveda {
+            owner: context.accounts.owner.key(),
+            nombre_boveda: nombre_boveda.clone(),
+            lotes: Vec::new(),
+            id_counter: 0,
         });
 
-        msg!("Cliente {} creado con id: {}", nombre, id_cliente); // Log de verificacion
-
+        msg!("Boveda RWA: {} creada exitosamente!", nombre_boveda);
         Ok(())
     }
 
-    /////////////////////////// Registrar Venta ///////////////////////////
-    // id_cliente y sku no se usan en el cuerpo: viajan al contexto para derivar y validar
-    // las cuentas. Ver NuevaVenta.
-    pub fn registrar_venta(
-        context: Context<NuevaVenta>,
-        _id_cliente: u16,
-        sku: String,
+    /////////////////////////// Crear Lote ///////////////////////////
+    pub fn crear_lote(context: Context<NuevoLote>, categoria: String) -> Result<()> {
+        let lote_key = context.accounts.lote.key(); // Se lee ANTES del &mut para no solapar prestamos
+
+        let boveda = &mut context.accounts.boveda;
+
+        require!(boveda.lotes.len() < 10, Errores::LimiteAlcanzado);
+
+        let id_lote = boveda.id_counter + 1;
+        boveda.id_counter = id_lote;
+        boveda.lotes.push(lote_key);
+
+        context.accounts.lote.set_inner(Lote {
+            id_lote,
+            categoria: categoria.clone(),
+            total_activos: 0,
+            activos: Vec::new(),
+        });
+
+        msg!("Lote {} creado con id: {}", categoria, id_lote);
+        Ok(())
+    }
+
+    /////////////////////////// Registrar Activo ///////////////////////////
+    pub fn registrar_activo(
+        context: Context<NuevoActivo>,
+        _id_lote: u16,
+        serial: String,
         descripcion: String,
-        monto: u32,
+        valor_estimado: u32,
     ) -> Result<()> {
-        context.accounts.venta.set_inner(Venta {
-            sku,
+        let activo_key = context.accounts.activo.key(); // Se lee ANTES del &mut de lote
+
+        let lote = &mut context.accounts.lote;
+
+        require!(lote.activos.len() < 10, Errores::LimiteAlcanzado);
+
+        context.accounts.activo.set_inner(Activo {
+            serial: serial.clone(),
             descripcion,
-            monto,
-        }); // Serializa y guarda el struct en la cuenta de la venta
+            valor_estimado,
+        });
 
-        let venta_key = context.accounts.venta.key(); // Se lee ANTES del &mut de cliente
+        lote.activos.push(activo_key);
+        lote.total_activos += 1;
 
-        let cliente = &mut context.accounts.cliente;
-
-        cliente.historial.push(venta_key); // El historial guarda PDAs, no structs completos
-        cliente.compras += 1;
-
-        msg!(
-            "Venta registrada para el cliente con id: {}",
-            cliente.id_cliente
-        ); // Log de verificacion
-
+        msg!("Activo {} registrado en el lote id: {}", serial, lote.id_lote);
         Ok(())
     }
 
-    /////////////////////////// Hacer Devolucion ///////////////////////////
-    // El contexto EliminarVenta lleva "close = owner": la cuenta de la venta se cierra al final
-    // y su rent vuelve al owner.
-    pub fn hacer_devolucion(
-        context: Context<EliminarVenta>,
-        _id_cliente: u16,
-        sku: String,
+    /////////////////////////// Actualizar Valor ///////////////////////////
+    pub fn actualizar_valor(
+        context: Context<ModificarActivo>,
+        _id_lote: u16,
+        serial: String,
+        nuevo_valor: u32,
     ) -> Result<()> {
-        let venta_key = context.accounts.venta.key(); // Se lee ANTES del &mut de cliente
-
-        let cliente = &mut context.accounts.cliente;
-
-        require!(cliente.historial.contains(&venta_key), Errores::NoSKU);
-        // La venta existe y pertenece a este cliente (lo garantizan las seeds), pero el historial
-        // es el indice de lectura: si la referencia no esta, restar compras lo desincronizaria.
-
-        cliente.historial.retain(|&k| k != venta_key); // Quita la referencia del historial
-        cliente.compras -= 1;
+        let activo = &mut context.accounts.activo;
+        let viejo_valor = activo.valor_estimado;
+        activo.valor_estimado = nuevo_valor;
 
         msg!(
-            "Venta con sku: {}, devuelta por el cliente con id: {}",
-            sku,
-            cliente.id_cliente
+            "El valor del activo {} paso de: {} a: {}",
+            serial,
+            viejo_valor,
+            nuevo_valor
         );
-
         Ok(())
     }
 
-    /////////////////////////// Cambiar Monto ///////////////////////////
-    // La cuenta de la venta llega ya validada por el contexto: no hay que recorrer ningun vector
-    // ni reconstruir la cadena a mano.
-    pub fn cambiar_monto(
-        context: Context<ModificarVenta>,
-        _id_cliente: u16,
-        sku: String,
-        nuevo_monto: u32,
+    /////////////////////////// Liquidar Activo (Cierre condicionado) ///////////////////////////
+    pub fn liquidar_activo(
+        context: Context<EliminarActivo>,
+        _id_lote: u16,
+        serial: String,
     ) -> Result<()> {
-        let venta = &mut context.accounts.venta;
-        let viejo_monto = venta.monto;
-        venta.monto = nuevo_monto;
+        let activo_key = context.accounts.activo.key();
+
+        let lote = &mut context.accounts.lote;
+
+        require!(lote.activos.contains(&activo_key), Errores::NoExisteActivo);
+
+        lote.activos.retain(|&k| k != activo_key);
+        lote.total_activos -= 1;
 
         msg!(
-            "El monto de la venta con sku: {}, paso de: {}, a: {}",
-            sku,
-            viejo_monto,
-            nuevo_monto
+            "Activo con serial: {} liquidado del lote id: {}. Cuenta cerrada.",
+            serial,
+            lote.id_lote
         );
+        Ok(())
+    }
 
+    /////////////////////////// Cerrar Lote (Baja de entidad condicionada) ///////////////////////////
+    pub fn cerrar_lote(
+        context: Context<EliminarLote>,
+        _id_lote: u16,
+    ) -> Result<()> {
+        let lote_key = context.accounts.lote.key();
+
+        // Regla critica de negocio: No permitir cerrar un lote si todavia tiene activos
+        let lote = &context.accounts.lote;
+        require!(lote.activos.is_empty(), Errores::LoteTieneActivos);
+
+        let boveda = &mut context.accounts.boveda;
+        require!(boveda.lotes.contains(&lote_key), Errores::NoExisteLote);
+
+        boveda.lotes.retain(|&k| k != lote_key);
+
+        msg!("Lote con id: {} cerrado exitosamente. Cero activos huerfanos.", lote.id_lote);
         Ok(())
     }
 }
@@ -133,202 +138,217 @@ pub mod registro {
 /////////////////////////// Codigos de Error ///////////////////////////
 #[error_code]
 pub enum Errores {
-    #[msg("Error, no eres el owner del registro")]
+    #[msg("Error, no eres el owner de la boveda")]
     NoOwner,
-    #[msg("Error, la venta no esta en el historial del cliente")]
-    NoSKU,
+    #[msg("Error, el activo no esta en el lote indicado")]
+    NoExisteActivo,
+    #[msg("Error, se alcanzo el limite de 10 elementos")]
+    LimiteAlcanzado,
+    #[msg("Error, no se puede cerrar un lote con activos activos")]
+    LoteTieneActivos,
+    #[msg("Error, el lote no esta registrado en la boveda")]
+    NoExisteLote,
 }
 
 /////////////////////////// CUENTAS ///////////////////////////
-/////////////////////////// Registro ///////////////////////////
 
+/////////////////////////// Boveda ///////////////////////////
 #[account]
 #[derive(InitSpace)]
-pub struct Registro {
-    pub owner: Pubkey, // pub: has_one = owner necesita leer este campo desde el contexto
+pub struct Boveda {
+    pub owner: Pubkey, // pub: has_one = owner necesita leer este campo
 
     #[max_len(30)]
-    nombre_negocio: String,
-
-    #[max_len(10)] // Guarda PDAs (32 bytes c/u), no structs completos
-    clientes: Vec<Pubkey>,
-
-    id_counter: u16,
-}
-
-/////////////////////////// Cliente ///////////////////////////
-
-#[account]
-#[derive(InitSpace, PartialEq)]
-pub struct Cliente {
-    id_cliente: u16,
-
-    #[max_len(30)]
-    nombre: String,
-
-    compras: u16,
+    pub nombre_boveda: String,
 
     #[max_len(10)]
-    historial: Vec<Pubkey>,
+    pub lotes: Vec<Pubkey>,
+
+    pub id_counter: u16,
 }
 
-/////////////////////////// Venta ///////////////////////////
-
+/////////////////////////// Lote ///////////////////////////
 #[account]
 #[derive(InitSpace, PartialEq)]
-pub struct Venta {
+pub struct Lote {
+    pub id_lote: u16,
+
+    #[max_len(30)]
+    pub categoria: String,
+
+    pub total_activos: u16,
+
+    #[max_len(10)]
+    pub activos: Vec<Pubkey>,
+}
+
+/////////////////////////// Activo ///////////////////////////
+#[account]
+#[derive(InitSpace, PartialEq)]
+pub struct Activo {
     #[max_len(5)]
-    sku: String,
+    pub serial: String,
 
     #[max_len(50)]
-    descripcion: String,
+    pub descripcion: String,
 
-    monto: u32,
+    pub valor_estimado: u32,
 }
 
 /////////////////////////// CONTEXTOS ///////////////////////////
 /*
 La jerarquia del modelo vive en las seeds:
 
-    registro  <- [b"registro", nombre_negocio, owner]
-    cliente   <- [b"cliente",  registro, id_cliente]
-    venta     <- [b"venta",    cliente,  sku]
+    boveda  <- [b"boveda", nombre_boveda, owner]
+    lote    <- [b"lote",   boveda,        id_lote]
+    activo  <- [b"activo", lote,          serial]
 
 Cada cuenta se deriva de su padre, asi que la pertenencia queda garantizada por construccion:
-si la direccion coincide, el cliente ES de ese registro. Por eso ya no hace falta recorrer
-el vector para validar; los vectores quedan como indice de lectura para el frontend.
+si la direccion coincide, el lote ES de esa boveda y el activo ES de ese lote.
 
-El "has_one = owner" cierra la cadena por arriba: comprueba que registro.owner == owner.key(),
-es decir, que quien firma es el dueño del registro desde el que se deriva todo lo demas.
+El "has_one = owner" comprueba que boveda.owner == owner.key(), garantizando que quien firma
+es el dueño de la boveda raiz.
 */
 
-/////////////////////////// Nuevo Registro ///////////////////////////
-/// Instruccion: crear_registro
-
+/////////////////////////// Nueva Boveda ///////////////////////////
+/// Instruccion: crear_boveda
 #[derive(Accounts)]
-#[instruction(nombre_negocio: String)]
-pub struct NuevoRegistro<'info> {
+#[instruction(nombre_boveda: String)]
+pub struct NuevaBoveda<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(
         init,
         payer = owner,
-        space = Registro::INIT_SPACE + 8,
-        seeds = [b"registro", nombre_negocio.as_bytes(), owner.key().as_ref()],
+        space = Boveda::INIT_SPACE + 8,
+        seeds = [b"boveda", nombre_boveda.as_bytes(), owner.key().as_ref()],
         bump
     )]
-    pub registro: Account<'info, Registro>,
+    pub boveda: Account<'info, Boveda>,
 
     pub system_program: Program<'info, System>,
 }
 
-/////////////////////////// Nuevo Cliente ///////////////////////////
-/// Instruccion: crear_cliente
-
+/////////////////////////// Nuevo Lote ///////////////////////////
+/// Instruccion: crear_lote
 #[derive(Accounts)]
-pub struct NuevoCliente<'info> {
+pub struct NuevoLote<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(mut, has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>,
+    pub boveda: Account<'info, Boveda>,
 
     #[account(
         init,
         payer = owner,
-        space = Cliente::INIT_SPACE + 8,
-        // El id sale del contador del propio registro: el programa lo asigna, nadie lo envia.
-        // to_le_bytes() porque un u16 no tiene as_bytes(): ese metodo es de String/str
-        seeds = [b"cliente", registro.key().as_ref(), (registro.id_counter + 1).to_le_bytes().as_ref()],
+        space = Lote::INIT_SPACE + 8,
+        seeds = [b"lote", boveda.key().as_ref(), (boveda.id_counter + 1).to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>,
+    pub lote: Account<'info, Lote>,
 
     pub system_program: Program<'info, System>,
 }
 
-/////////////////////////// Nueva Venta ///////////////////////////
-/// Instruccion: registrar_venta
-
+/////////////////////////// Nuevo Activo ///////////////////////////
+/// Instruccion: registrar_activo
 #[derive(Accounts)]
-#[instruction(id_cliente: u16, sku: String)]
-pub struct NuevaVenta<'info> {
+#[instruction(id_lote: u16, serial: String)]
+pub struct NuevoActivo<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
 
     #[account(has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>, // Sin mut: solo se lee para derivar al cliente
+    pub boveda: Account<'info, Boveda>,
 
     #[account(
         mut,
-        seeds = [b"cliente", registro.key().as_ref(), id_cliente.to_le_bytes().as_ref()],
+        seeds = [b"lote", boveda.key().as_ref(), id_lote.to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>,
+    pub lote: Account<'info, Lote>,
 
     #[account(
         init,
         payer = owner,
-        space = Venta::INIT_SPACE + 8,
-        // El SKU entra en los seeds: un cliente no puede repetir el mismo producto
-        seeds = [b"venta", cliente.key().as_ref(), sku.as_bytes()],
+        space = Activo::INIT_SPACE + 8,
+        seeds = [b"activo", lote.key().as_ref(), serial.as_bytes()],
         bump
     )]
-    pub venta: Account<'info, Venta>,
+    pub activo: Account<'info, Activo>,
 
     pub system_program: Program<'info, System>,
 }
 
-/////////////////////////// Modificar Venta ///////////////////////////
-/// Instruccion: cambiar_monto
-
+/////////////////////////// Modificar Activo ///////////////////////////
+/// Instruccion: actualizar_valor
 #[derive(Accounts)]
-#[instruction(id_cliente: u16, sku: String)]
-pub struct ModificarVenta<'info> {
+#[instruction(id_lote: u16, serial: String)]
+pub struct ModificarActivo<'info> {
     pub owner: Signer<'info>,
 
     #[account(has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>,
+    pub boveda: Account<'info, Boveda>,
 
     #[account(
-        seeds = [b"cliente", registro.key().as_ref(), id_cliente.to_le_bytes().as_ref()],
+        seeds = [b"lote", boveda.key().as_ref(), id_lote.to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>, // Sin mut: solo se lee, para derivar la venta
+    pub lote: Account<'info, Lote>,
 
     #[account(
         mut,
-        seeds = [b"venta", cliente.key().as_ref(), sku.as_bytes()],
+        seeds = [b"activo", lote.key().as_ref(), serial.as_bytes()],
         bump
     )]
-    pub venta: Account<'info, Venta>,
+    pub activo: Account<'info, Activo>,
 }
 
-/////////////////////////// Eliminar Venta ///////////////////////////
-/// Instruccion: hacer_devolucion -> cierra la cuenta
-
+/////////////////////////// Eliminar Activo ///////////////////////////
+/// Instruccion: liquidar_activo -> cierra la cuenta y reembolsa renta al owner
 #[derive(Accounts)]
-#[instruction(id_cliente: u16, sku: String)]
-pub struct EliminarVenta<'info> {
+#[instruction(id_lote: u16, serial: String)]
+pub struct EliminarActivo<'info> {
     #[account(mut)]
-    pub owner: Signer<'info>, // mut: recibe el rent de la cuenta cerrada
+    pub owner: Signer<'info>,
 
     #[account(has_one = owner @ Errores::NoOwner)]
-    pub registro: Account<'info, Registro>, // Sin mut: el registro no cambia en una devolucion
+    pub boveda: Account<'info, Boveda>,
 
     #[account(
         mut,
-        seeds = [b"cliente", registro.key().as_ref(), id_cliente.to_le_bytes().as_ref()],
+        seeds = [b"lote", boveda.key().as_ref(), id_lote.to_le_bytes().as_ref()],
         bump
     )]
-    pub cliente: Account<'info, Cliente>,
+    pub lote: Account<'info, Lote>,
 
     #[account(
         mut,
         close = owner,
-        seeds = [b"venta", cliente.key().as_ref(), sku.as_bytes()],
+        seeds = [b"activo", lote.key().as_ref(), serial.as_bytes()],
         bump
     )]
-    pub venta: Account<'info, Venta>,
+    pub activo: Account<'info, Activo>,
+}
+
+/////////////////////////// Eliminar Lote ///////////////////////////
+/// Instruccion: cerrar_lote -> cierra la cuenta del lote y devuelve renta al owner
+#[derive(Accounts)]
+#[instruction(id_lote: u16)]
+pub struct EliminarLote<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+
+    #[account(mut, has_one = owner @ Errores::NoOwner)]
+    pub boveda: Account<'info, Boveda>,
+
+    #[account(
+        mut,
+        close = owner,
+        seeds = [b"lote", boveda.key().as_ref(), id_lote.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub lote: Account<'info, Lote>,
 }

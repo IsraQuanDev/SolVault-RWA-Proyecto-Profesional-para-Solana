@@ -16,8 +16,6 @@ import {
   getBytesEncoder,
   getStructDecoder,
   getStructEncoder,
-  getU16Decoder,
-  getU16Encoder,
   getU32Decoder,
   getU32Encoder,
   getUtf8Decoder,
@@ -47,24 +45,22 @@ import {
   type ResolvedInstructionAccount,
   type ResolvedInstructionAccountMeta,
 } from "@solana/program-client-core";
-import { REGISTRO_PROGRAM_ADDRESS } from "../programs";
+import { BOVEDA_PROGRAM_ADDRESS } from "../programs";
 
-export const REGISTRAR_VENTA_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array(
-  [47, 95, 122, 187, 82, 62, 119, 131],
-);
+export const CREAR_BOVEDA_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  152, 203, 235, 83, 197, 244, 218, 125,
+]);
 
-export function getRegistrarVentaDiscriminatorBytes(): ReadonlyUint8Array {
+export function getCrearBovedaDiscriminatorBytes(): ReadonlyUint8Array {
   return fixEncoderSize(getBytesEncoder(), 8).encode(
-    REGISTRAR_VENTA_DISCRIMINATOR,
+    CREAR_BOVEDA_DISCRIMINATOR,
   );
 }
 
-export type RegistrarVentaInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type CrearBovedaInstruction<
+  TProgram extends string = typeof BOVEDA_PROGRAM_ADDRESS,
   TAccountOwner extends string | AccountMeta<string> = string,
-  TAccountRegistro extends string | AccountMeta<string> = string,
-  TAccountCliente extends string | AccountMeta<string> = string,
-  TAccountVenta extends string | AccountMeta<string> = string,
+  TAccountBoveda extends string | AccountMeta<string> = string,
   TAccountSystemProgram extends string | AccountMeta<string> =
     "11111111111111111111111111111111",
   TRemainingAccounts extends readonly AccountMeta<string>[] = [],
@@ -76,15 +72,9 @@ export type RegistrarVentaInstruction<
         ? WritableSignerAccount<TAccountOwner> &
             AccountSignerMeta<TAccountOwner>
         : TAccountOwner,
-      TAccountRegistro extends string
-        ? ReadonlyAccount<TAccountRegistro>
-        : TAccountRegistro,
-      TAccountCliente extends string
-        ? WritableAccount<TAccountCliente>
-        : TAccountCliente,
-      TAccountVenta extends string
-        ? WritableAccount<TAccountVenta>
-        : TAccountVenta,
+      TAccountBoveda extends string
+        ? WritableAccount<TAccountBoveda>
+        : TAccountBoveda,
       TAccountSystemProgram extends string
         ? ReadonlyAccount<TAccountSystemProgram>
         : TAccountSystemProgram,
@@ -92,108 +82,71 @@ export type RegistrarVentaInstruction<
     ]
   >;
 
-export type RegistrarVentaInstructionData = {
+export type CrearBovedaInstructionData = {
   discriminator: ReadonlyUint8Array;
-  idCliente: number;
-  sku: string;
-  descripcion: string;
-  monto: number;
+  nombreBoveda: string;
 };
 
-export type RegistrarVentaInstructionDataArgs = {
-  idCliente: number;
-  sku: string;
-  descripcion: string;
-  monto: number;
-};
+export type CrearBovedaInstructionDataArgs = { nombreBoveda: string };
 
-export function getRegistrarVentaInstructionDataEncoder(): Encoder<RegistrarVentaInstructionDataArgs> {
+export function getCrearBovedaInstructionDataEncoder(): Encoder<CrearBovedaInstructionDataArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
-      ["idCliente", getU16Encoder()],
-      ["sku", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["descripcion", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
-      ["monto", getU32Encoder()],
+      ["nombreBoveda", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
     ]),
-    (value) => ({ ...value, discriminator: REGISTRAR_VENTA_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: CREAR_BOVEDA_DISCRIMINATOR }),
   );
 }
 
-export function getRegistrarVentaInstructionDataDecoder(): Decoder<RegistrarVentaInstructionData> {
+export function getCrearBovedaInstructionDataDecoder(): Decoder<CrearBovedaInstructionData> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
-    ["idCliente", getU16Decoder()],
-    ["sku", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["descripcion", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["monto", getU32Decoder()],
+    ["nombreBoveda", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
   ]);
 }
 
-export function getRegistrarVentaInstructionDataCodec(): Codec<
-  RegistrarVentaInstructionDataArgs,
-  RegistrarVentaInstructionData
+export function getCrearBovedaInstructionDataCodec(): Codec<
+  CrearBovedaInstructionDataArgs,
+  CrearBovedaInstructionData
 > {
   return combineCodec(
-    getRegistrarVentaInstructionDataEncoder(),
-    getRegistrarVentaInstructionDataDecoder(),
+    getCrearBovedaInstructionDataEncoder(),
+    getCrearBovedaInstructionDataDecoder(),
   );
 }
 
-export type RegistrarVentaInput<
+export type CrearBovedaInput<
   TAccountOwner extends InstructionSignerInput = InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput = InstructionAccountInput,
-  TAccountCliente extends InstructionAccountInput = InstructionAccountInput,
-  TAccountVenta extends InstructionAccountInput = InstructionAccountInput,
+  TAccountBoveda extends InstructionAccountInput = InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput =
     InstructionAccountInput,
 > = {
   owner: TAccountOwner;
-  registro: TAccountRegistro;
-  cliente: TAccountCliente;
-  venta: TAccountVenta;
+  boveda: TAccountBoveda;
   systemProgram?: TAccountSystemProgram;
-  idCliente: RegistrarVentaInstructionDataArgs["idCliente"];
-  sku: RegistrarVentaInstructionDataArgs["sku"];
-  descripcion: RegistrarVentaInstructionDataArgs["descripcion"];
-  monto: RegistrarVentaInstructionDataArgs["monto"];
+  nombreBoveda: CrearBovedaInstructionDataArgs["nombreBoveda"];
 };
 
-export function getRegistrarVentaInstruction<
+export function getCrearBovedaInstruction<
   TAccountOwner extends InstructionSignerInput,
-  TAccountRegistro extends InstructionAccountInput,
-  TAccountCliente extends InstructionAccountInput,
-  TAccountVenta extends InstructionAccountInput,
+  TAccountBoveda extends InstructionAccountInput,
   TAccountSystemProgram extends InstructionAccountInput,
-  TProgramAddress extends Address = typeof REGISTRO_PROGRAM_ADDRESS,
+  TProgramAddress extends Address = typeof BOVEDA_PROGRAM_ADDRESS,
 >(
-  input: RegistrarVentaInput<
-    TAccountOwner,
-    TAccountRegistro,
-    TAccountCliente,
-    TAccountVenta,
-    TAccountSystemProgram
-  >,
+  input: CrearBovedaInput<TAccountOwner, TAccountBoveda, TAccountSystemProgram>,
   config?: {
     programAddress?: TProgramAddress | { readonly address: TProgramAddress };
   },
-): RegistrarVentaInstruction<
+): CrearBovedaInstruction<
   TProgramAddress,
   ResolvedInstructionAccountMeta<
     TAccountOwner,
     InstructionAccountInputAddress<TAccountOwner>
   >,
   ResolvedInstructionAccountMeta<
-    TAccountRegistro,
-    InstructionAccountInputAddress<TAccountRegistro>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountCliente,
-    InstructionAccountInputAddress<TAccountCliente>
-  >,
-  ResolvedInstructionAccountMeta<
-    TAccountVenta,
-    InstructionAccountInputAddress<TAccountVenta>
+    TAccountBoveda,
+    InstructionAccountInputAddress<TAccountBoveda>
   >,
   ResolvedInstructionAccountMeta<
     TAccountSystemProgram,
@@ -201,8 +154,7 @@ export function getRegistrarVentaInstruction<
   >
 > {
   // Program address.
-  const programAddressInput =
-    config?.programAddress ?? REGISTRO_PROGRAM_ADDRESS;
+  const programAddressInput = config?.programAddress ?? BOVEDA_PROGRAM_ADDRESS;
   const programAddress =
     typeof programAddressInput === "string"
       ? programAddressInput
@@ -214,17 +166,7 @@ export function getRegistrarVentaInstruction<
   // Original accounts.
   const originalAccounts = {
     owner: { value: input.owner ?? null, isSigner: true, isWritable: true },
-    registro: {
-      value: input.registro ?? null,
-      isSigner: false,
-      isWritable: false,
-    },
-    cliente: {
-      value: input.cliente ?? null,
-      isSigner: false,
-      isWritable: true,
-    },
-    venta: { value: input.venta ?? null, isSigner: false, isWritable: true },
+    boveda: { value: input.boveda ?? null, isSigner: false, isWritable: true },
     systemProgram: {
       value: input.systemProgram ?? null,
       isSigner: false,
@@ -248,32 +190,22 @@ export function getRegistrarVentaInstruction<
   return Object.freeze({
     accounts: [
       getAccountMeta("owner", accounts.owner),
-      getAccountMeta("registro", accounts.registro),
-      getAccountMeta("cliente", accounts.cliente),
-      getAccountMeta("venta", accounts.venta),
+      getAccountMeta("boveda", accounts.boveda),
       getAccountMeta("systemProgram", accounts.systemProgram),
     ],
-    data: getRegistrarVentaInstructionDataEncoder().encode(
-      args as RegistrarVentaInstructionDataArgs,
+    data: getCrearBovedaInstructionDataEncoder().encode(
+      args as CrearBovedaInstructionDataArgs,
     ),
     programAddress,
-  } as RegistrarVentaInstruction<
+  } as CrearBovedaInstruction<
     TProgramAddress,
     ResolvedInstructionAccountMeta<
       TAccountOwner,
       InstructionAccountInputAddress<TAccountOwner>
     >,
     ResolvedInstructionAccountMeta<
-      TAccountRegistro,
-      InstructionAccountInputAddress<TAccountRegistro>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountCliente,
-      InstructionAccountInputAddress<TAccountCliente>
-    >,
-    ResolvedInstructionAccountMeta<
-      TAccountVenta,
-      InstructionAccountInputAddress<TAccountVenta>
+      TAccountBoveda,
+      InstructionAccountInputAddress<TAccountBoveda>
     >,
     ResolvedInstructionAccountMeta<
       TAccountSystemProgram,
@@ -282,35 +214,33 @@ export function getRegistrarVentaInstruction<
   >);
 }
 
-export type ParsedRegistrarVentaInstruction<
-  TProgram extends string = typeof REGISTRO_PROGRAM_ADDRESS,
+export type ParsedCrearBovedaInstruction<
+  TProgram extends string = typeof BOVEDA_PROGRAM_ADDRESS,
   TAccountMetas extends readonly AccountMeta[] = readonly AccountMeta[],
 > = {
   programAddress: Address<TProgram>;
   accounts: {
     owner: TAccountMetas[0];
-    registro: TAccountMetas[1];
-    cliente: TAccountMetas[2];
-    venta: TAccountMetas[3];
-    systemProgram: TAccountMetas[4];
+    boveda: TAccountMetas[1];
+    systemProgram: TAccountMetas[2];
   };
-  data: RegistrarVentaInstructionData;
+  data: CrearBovedaInstructionData;
 };
 
-export function parseRegistrarVentaInstruction<
+export function parseCrearBovedaInstruction<
   TProgram extends string,
   TAccountMetas extends readonly AccountMeta[],
 >(
   instruction: Instruction<TProgram> &
     InstructionWithAccounts<TAccountMetas> &
     InstructionWithData<ReadonlyUint8Array>,
-): ParsedRegistrarVentaInstruction<TProgram, TAccountMetas> {
-  if (instruction.accounts.length < 5) {
+): ParsedCrearBovedaInstruction<TProgram, TAccountMetas> {
+  if (instruction.accounts.length < 3) {
     throw new SolanaError(
       SOLANA_ERROR__PROGRAM_CLIENTS__INSUFFICIENT_ACCOUNT_METAS,
       {
         actualAccountMetas: instruction.accounts.length,
-        expectedAccountMetas: 5,
+        expectedAccountMetas: 3,
       },
     );
   }
@@ -324,11 +254,9 @@ export function parseRegistrarVentaInstruction<
     programAddress: instruction.programAddress,
     accounts: {
       owner: getNextAccount(),
-      registro: getNextAccount(),
-      cliente: getNextAccount(),
-      venta: getNextAccount(),
+      boveda: getNextAccount(),
       systemProgram: getNextAccount(),
     },
-    data: getRegistrarVentaInstructionDataDecoder().decode(instruction.data),
+    data: getCrearBovedaInstructionDataDecoder().decode(instruction.data),
   };
 }

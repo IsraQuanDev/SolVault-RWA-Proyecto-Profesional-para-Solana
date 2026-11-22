@@ -1,12 +1,12 @@
 {
   "version": "0.1.0",
-  "name": "registro",
+  "name": "boveda",
   "metadata": {
     "address": "38oTMyvUTmqkBQeMiuok5F2mPjp9dVadWdBeQTDNmTUY"
   },
   "instructions": [
     {
-      "name": "crearRegistro",
+      "name": "crearBoveda",
       "accounts": [
         {
           "name": "owner",
@@ -14,7 +14,7 @@
           "isSigner": true
         },
         {
-          "name": "registro",
+          "name": "boveda",
           "isMut": true,
           "isSigner": false
         },
@@ -26,13 +26,13 @@
       ],
       "args": [
         {
-          "name": "nombreNegocio",
+          "name": "nombreBoveda",
           "type": "string"
         }
       ]
     },
     {
-      "name": "crearCliente",
+      "name": "crearLote",
       "accounts": [
         {
           "name": "owner",
@@ -40,12 +40,12 @@
           "isSigner": true
         },
         {
-          "name": "registro",
+          "name": "boveda",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "cliente",
+          "name": "lote",
           "isMut": true,
           "isSigner": false
         },
@@ -57,13 +57,13 @@
       ],
       "args": [
         {
-          "name": "nombre",
+          "name": "categoria",
           "type": "string"
         }
       ]
     },
     {
-      "name": "registrarVenta",
+      "name": "registrarActivo",
       "accounts": [
         {
           "name": "owner",
@@ -71,17 +71,17 @@
           "isSigner": true
         },
         {
-          "name": "registro",
+          "name": "boveda",
           "isMut": false,
           "isSigner": false
         },
         {
-          "name": "cliente",
+          "name": "lote",
           "isMut": true,
           "isSigner": false
         },
         {
-          "name": "venta",
+          "name": "activo",
           "isMut": true,
           "isSigner": false
         },
@@ -93,11 +93,11 @@
       ],
       "args": [
         {
-          "name": "idCliente",
+          "name": "idLote",
           "type": "u16"
         },
         {
-          "name": "sku",
+          "name": "serial",
           "type": "string"
         },
         {
@@ -105,48 +105,13 @@
           "type": "string"
         },
         {
-          "name": "monto",
+          "name": "valorEstimado",
           "type": "u32"
         }
       ]
     },
     {
-      "name": "hacerDevolucion",
-      "accounts": [
-        {
-          "name": "owner",
-          "isMut": true,
-          "isSigner": true
-        },
-        {
-          "name": "registro",
-          "isMut": false,
-          "isSigner": false
-        },
-        {
-          "name": "cliente",
-          "isMut": true,
-          "isSigner": false
-        },
-        {
-          "name": "venta",
-          "isMut": true,
-          "isSigner": false
-        }
-      ],
-      "args": [
-        {
-          "name": "idCliente",
-          "type": "u16"
-        },
-        {
-          "name": "sku",
-          "type": "string"
-        }
-      ]
-    },
-    {
-      "name": "cambiarMonto",
+      "name": "actualizarValor",
       "accounts": [
         {
           "name": "owner",
@@ -154,40 +119,101 @@
           "isSigner": true
         },
         {
-          "name": "registro",
+          "name": "boveda",
           "isMut": false,
           "isSigner": false
         },
         {
-          "name": "cliente",
+          "name": "lote",
           "isMut": false,
           "isSigner": false
         },
         {
-          "name": "venta",
+          "name": "activo",
           "isMut": true,
           "isSigner": false
         }
       ],
       "args": [
         {
-          "name": "idCliente",
+          "name": "idLote",
           "type": "u16"
         },
         {
-          "name": "sku",
+          "name": "serial",
           "type": "string"
         },
         {
-          "name": "nuevoMonto",
+          "name": "nuevoValor",
           "type": "u32"
+        }
+      ]
+    },
+    {
+      "name": "liquidarActivo",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "boveda",
+          "isMut": false,
+          "isSigner": false
+        },
+        {
+          "name": "lote",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "activo",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "idLote",
+          "type": "u16"
+        },
+        {
+          "name": "serial",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "cerrarLote",
+      "accounts": [
+        {
+          "name": "owner",
+          "isMut": true,
+          "isSigner": true
+        },
+        {
+          "name": "boveda",
+          "isMut": true,
+          "isSigner": false
+        },
+        {
+          "name": "lote",
+          "isMut": true,
+          "isSigner": false
+        }
+      ],
+      "args": [
+        {
+          "name": "idLote",
+          "type": "u16"
         }
       ]
     }
   ],
   "accounts": [
     {
-      "name": "Registro",
+      "name": "Boveda",
       "type": {
         "kind": "struct",
         "fields": [
@@ -196,11 +222,11 @@
             "type": "publicKey"
           },
           {
-            "name": "nombreNegocio",
+            "name": "nombreBoveda",
             "type": "string"
           },
           {
-            "name": "clientes",
+            "name": "lotes",
             "type": {
               "vec": "publicKey"
             }
@@ -213,24 +239,24 @@
       }
     },
     {
-      "name": "Cliente",
+      "name": "Lote",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "idCliente",
+            "name": "idLote",
             "type": "u16"
           },
           {
-            "name": "nombre",
+            "name": "categoria",
             "type": "string"
           },
           {
-            "name": "compras",
+            "name": "totalActivos",
             "type": "u16"
           },
           {
-            "name": "historial",
+            "name": "activos",
             "type": {
               "vec": "publicKey"
             }
@@ -239,12 +265,12 @@
       }
     },
     {
-      "name": "Venta",
+      "name": "Activo",
       "type": {
         "kind": "struct",
         "fields": [
           {
-            "name": "sku",
+            "name": "serial",
             "type": "string"
           },
           {
@@ -252,7 +278,7 @@
             "type": "string"
           },
           {
-            "name": "monto",
+            "name": "valorEstimado",
             "type": "u32"
           }
         ]
@@ -263,12 +289,27 @@
     {
       "code": 6000,
       "name": "NoOwner",
-      "msg": "Error, no eres el owner del registro"
+      "msg": "Error, no eres el owner de la boveda"
     },
     {
       "code": 6001,
-      "name": "NoSKU",
-      "msg": "Error, la venta no esta en el historial del cliente"
+      "name": "NoExisteActivo",
+      "msg": "Error, el activo no esta en el lote indicado"
+    },
+    {
+      "code": 6002,
+      "name": "LimiteAlcanzado",
+      "msg": "Error, se alcanzo el limite de 10 elementos"
+    },
+    {
+      "code": 6003,
+      "name": "LoteTieneActivos",
+      "msg": "Error, no se puede cerrar un lote con activos activos"
+    },
+    {
+      "code": 6004,
+      "name": "NoExisteLote",
+      "msg": "Error, el lote no esta registrado en la boveda"
     }
   ]
 }

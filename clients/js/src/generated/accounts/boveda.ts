@@ -49,127 +49,124 @@ import {
   type ReadonlyUint8Array,
 } from "@solana/kit";
 
-export const REGISTRO_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
-  80, 44, 41, 67, 32, 150, 85, 243,
+export const BOVEDA_DISCRIMINATOR: ReadonlyUint8Array = new Uint8Array([
+  51, 42, 155, 1, 44, 232, 78, 11,
 ]);
 
-export function getRegistroDiscriminatorBytes(): ReadonlyUint8Array {
-  return fixEncoderSize(getBytesEncoder(), 8).encode(REGISTRO_DISCRIMINATOR);
+export function getBovedaDiscriminatorBytes(): ReadonlyUint8Array {
+  return fixEncoderSize(getBytesEncoder(), 8).encode(BOVEDA_DISCRIMINATOR);
 }
 
-export type Registro = {
+export type Boveda = {
   discriminator: ReadonlyUint8Array;
   owner: Address;
-  nombreNegocio: string;
-  clientes: Array<Address>;
+  nombreBoveda: string;
+  lotes: Array<Address>;
   idCounter: number;
 };
 
-export type RegistroArgs = {
+export type BovedaArgs = {
   owner: Address | HasAddress;
-  nombreNegocio: string;
-  clientes: Array<Address | HasAddress>;
+  nombreBoveda: string;
+  lotes: Array<Address | HasAddress>;
   idCounter: number;
 };
 
-/** Gets the encoder for {@link RegistroArgs} account data. */
-export function getRegistroEncoder(): Encoder<RegistroArgs> {
+/** Gets the encoder for {@link BovedaArgs} account data. */
+export function getBovedaEncoder(): Encoder<BovedaArgs> {
   return transformEncoder(
     getStructEncoder([
       ["discriminator", fixEncoderSize(getBytesEncoder(), 8)],
       ["owner", getAddressEncoder()],
-      [
-        "nombreNegocio",
-        addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder()),
-      ],
-      ["clientes", getArrayEncoder(getAddressEncoder())],
+      ["nombreBoveda", addEncoderSizePrefix(getUtf8Encoder(), getU32Encoder())],
+      ["lotes", getArrayEncoder(getAddressEncoder())],
       ["idCounter", getU16Encoder()],
     ]),
-    (value) => ({ ...value, discriminator: REGISTRO_DISCRIMINATOR }),
+    (value) => ({ ...value, discriminator: BOVEDA_DISCRIMINATOR }),
   );
 }
 
-/** Gets the decoder for {@link Registro} account data. */
-export function getRegistroDecoder(): Decoder<Registro> {
+/** Gets the decoder for {@link Boveda} account data. */
+export function getBovedaDecoder(): Decoder<Boveda> {
   return getStructDecoder([
     ["discriminator", fixDecoderSize(getBytesDecoder(), 8)],
     ["owner", getAddressDecoder()],
-    ["nombreNegocio", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
-    ["clientes", getArrayDecoder(getAddressDecoder())],
+    ["nombreBoveda", addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+    ["lotes", getArrayDecoder(getAddressDecoder())],
     ["idCounter", getU16Decoder()],
   ]);
 }
 
-/** Gets the codec for {@link Registro} account data. */
-export function getRegistroCodec(): Codec<RegistroArgs, Registro> {
-  return combineCodec(getRegistroEncoder(), getRegistroDecoder());
+/** Gets the codec for {@link Boveda} account data. */
+export function getBovedaCodec(): Codec<BovedaArgs, Boveda> {
+  return combineCodec(getBovedaEncoder(), getBovedaDecoder());
 }
 
-export function decodeRegistro<TAddress extends string = string>(
+export function decodeBoveda<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress>,
-): Account<Registro, TAddress>;
-export function decodeRegistro<TAddress extends string = string>(
+): Account<Boveda, TAddress>;
+export function decodeBoveda<TAddress extends string = string>(
   encodedAccount: MaybeEncodedAccount<TAddress>,
-): MaybeAccount<Registro, TAddress>;
-export function decodeRegistro<TAddress extends string = string>(
+): MaybeAccount<Boveda, TAddress>;
+export function decodeBoveda<TAddress extends string = string>(
   encodedAccount: EncodedAccount<TAddress> | MaybeEncodedAccount<TAddress>,
-): Account<Registro, TAddress> | MaybeAccount<Registro, TAddress> {
+): Account<Boveda, TAddress> | MaybeAccount<Boveda, TAddress> {
   return decodeAccount(
     encodedAccount as MaybeEncodedAccount<TAddress>,
-    getRegistroDecoder(),
+    getBovedaDecoder(),
   );
 }
 
-export async function fetchRegistro<TAddress extends string = string>(
+export async function fetchBoveda<TAddress extends string = string>(
   rpc:
     | Parameters<typeof fetchEncodedAccount>[0]
     | ClientWithRpc<GetAccountInfoApi>,
   address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
-): Promise<Account<Registro, TAddress>> {
-  const maybeAccount = await fetchMaybeRegistro(rpc, address, config);
+): Promise<Account<Boveda, TAddress>> {
+  const maybeAccount = await fetchMaybeBoveda(rpc, address, config);
   assertAccountExists(maybeAccount);
   return maybeAccount;
 }
 
-export async function fetchMaybeRegistro<TAddress extends string = string>(
+export async function fetchMaybeBoveda<TAddress extends string = string>(
   rpc:
     | Parameters<typeof fetchEncodedAccount>[0]
     | ClientWithRpc<GetAccountInfoApi>,
   address: Address<TAddress> | HasAddress<TAddress>,
   config?: FetchAccountConfig,
-): Promise<MaybeAccount<Registro, TAddress>> {
+): Promise<MaybeAccount<Boveda, TAddress>> {
   const maybeAccount = await fetchEncodedAccount(
     "rpc" in rpc ? rpc.rpc : rpc,
     typeof address === "string" ? address : address.address,
     config,
   );
-  return decodeRegistro(maybeAccount);
+  return decodeBoveda(maybeAccount);
 }
 
-export async function fetchAllRegistro(
+export async function fetchAllBoveda(
   rpc:
     | Parameters<typeof fetchEncodedAccounts>[0]
     | ClientWithRpc<GetMultipleAccountsApi>,
   addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
-): Promise<Account<Registro>[]> {
-  const maybeAccounts = await fetchAllMaybeRegistro(rpc, addresses, config);
+): Promise<Account<Boveda>[]> {
+  const maybeAccounts = await fetchAllMaybeBoveda(rpc, addresses, config);
   assertAccountsExist(maybeAccounts);
   return maybeAccounts;
 }
 
-export async function fetchAllMaybeRegistro(
+export async function fetchAllMaybeBoveda(
   rpc:
     | Parameters<typeof fetchEncodedAccounts>[0]
     | ClientWithRpc<GetMultipleAccountsApi>,
   addresses: Array<Address | HasAddress>,
   config?: FetchAccountsConfig,
-): Promise<MaybeAccount<Registro>[]> {
+): Promise<MaybeAccount<Boveda>[]> {
   const maybeAccounts = await fetchEncodedAccounts(
     "rpc" in rpc ? rpc.rpc : rpc,
     addresses.map((a) => (typeof a === "string" ? a : a.address)),
     config,
   );
-  return maybeAccounts.map((maybeAccount) => decodeRegistro(maybeAccount));
+  return maybeAccounts.map((maybeAccount) => decodeBoveda(maybeAccount));
 }
